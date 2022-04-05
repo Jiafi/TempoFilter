@@ -38,34 +38,50 @@ func main() {
 
 	filteredTracks := FilterTracks(myTracks, tempoPtr, nil)
 
-	for _, track := range *filteredTracks {
-		fmt.Println("  ", track.Name, track.Tempo)
-	}
-
 	if *createFilteredPlaylistPtr {
 		newPlaylistName := playlist.Name + strconv.FormatFloat(*tempoPtr, 'f', 2, 32)
-		CreatePlaylistWithFilteredTracks(client, newPlaylistName, filteredTracks)
+		ModifyPlaylistWithFilteredTracks(client, newPlaylistName, filteredTracks)
 	}
 }
 
-func CreatePlaylistWithFilteredTracks(client *spotify.Client, newPlaylistName string, tracks *[]MyTrack) {
+func CheckPlaylistExistsForUser(client *spotify.Client, playlistName string, userID string) (*spotify.ID, error) {
+	ctx := context.Background()
+	playlistPage, err := client.GetPlaylistsForUser(ctx, userID)
+	if err != nil {
+		log.Fatalf("There was an issue getting the playlists for the user: %v", err)
+	}
+	var playlistID *spotify.ID = nil
+	for _, playlist := range playlistPage.Playlists {
+		if playlistName == playlist.Name {
+			fmt.Println("Found a playlist with the same name")
+			playlistID = &playlist.ID
+		}
+	}
+	return playlistID, err
+}
+func ModifyPlaylistWithFilteredTracks(client *spotify.Client, newPlaylistName string, tracks *[]MyTrack) {
 
 	ctx := context.Background()
 	currentUser, err := client.CurrentUser(ctx)
 	if err != nil {
 		log.Fatalf("There was an issue getting the current user: %v", err)
 	}
-	newPlaylist, err := client.CreatePlaylistForUser(ctx, currentUser.ID, newPlaylistName, "asdf", false, false)
-	if err != nil {
-		log.Fatalf("There was an issue creating the playlist: %v", err)
+	playlistID, _ := CheckPlaylistExistsForUser(client, newPlaylistName, currentUser.ID)
+	if playlistID == nil {
+		description := "This Playlist is a copy around the given tempo " + newPlaylistName
+		newPlaylist, err := client.CreatePlaylistForUser(ctx, currentUser.ID, newPlaylistName, description, false, false)
+		playlistID = &newPlaylist.ID
+		if err != nil {
+			log.Fatalf("There was an issue creating the playlist: %v", err)
+		}
 	}
 	var filderedTrackIds []spotify.ID
 	for _, track := range *tracks {
 		filderedTrackIds = append(filderedTrackIds, track.ID)
 	}
 
-	client.AddTracksToPlaylist(ctx, newPlaylist.ID, filderedTrackIds...)
-	log.Printf("Added Tracks to new playlist")
+	client.AddTracksToPlaylist(ctx, *playlistID, filderedTrackIds...)
+	log.Printf("Added Tracks to new playlist  " + newPlaylistName)
 }
 
 func Search(client *spotify.Client, name *string) *spotify.SimplePlaylist {
