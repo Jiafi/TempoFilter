@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "download_etl"
+version = "0.1.0"
+description = "Dagster orchestrator and deemix code to download"
+authors = ["Jiafi <jordanwolinsky@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+deemix = "^3.6.6"
+dagster = "^0.14.7"
+dagster-shell = "^0.14.7"
+dagit = "^0.14.7"
+requests = "^2.27.1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
